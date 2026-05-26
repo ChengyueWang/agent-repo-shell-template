@@ -71,9 +71,10 @@ JSONL and rebuilds:
 
 The extension's **💬 Sessions** view renders both as chat bubbles.
 
-> If you're using **the extension on a workspace that's NOT cloned from
-> this template**, the extension provides a one-click setup:
-> `Cmd/Ctrl+Shift+P → "Agent Repo Shell: Install Session Capture Hook"`.
+If you have an existing workspace that you want to convert into an agent
+shell, the lightest path is still to copy this template's
+`tools/hooks/save-assistant-response.py` and `.claude/settings.json` over
+manually — there's nothing magical about them.
 
 ## The two-layer philosophy
 
