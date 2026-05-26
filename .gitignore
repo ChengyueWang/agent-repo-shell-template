@@ -1,0 +1,22 @@
+# Workspace mounts — populated by setup.sh, each target has its own remote.
+targets/
+
+# Per-session auto-captures — local working space, not for sharing.
+# Curated summaries you want to share can be committed explicitly via
+# `git add -f path/to/summary.md`.
+history/*/
+
+# Sidecar cache for file overviews (regeneratable via the extension's Sync
+# button). Commit these if you want overviews to render instantly on clone.
+.code-render/
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Editor / OS
+.DS_Store
+*.swp
+.vscode/
+.idea/
