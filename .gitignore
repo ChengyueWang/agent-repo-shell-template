@@ -1,13 +1,8 @@
-# Workspace mounts — populated by setup.sh, each target has its own remote.
+# Independent repositories and local run storage.
 targets/
+scratch/
 
-# Per-session auto-captures — local working space, not for sharing.
-# Curated summaries you want to share can be committed explicitly via
-# `git add -f path/to/summary.md`.
-history/*/
-
-# Sidecar cache for file overviews (regeneratable via the extension's Sync
-# button). Commit these if you want overviews to render instantly on clone.
+# Regeneratable extension cache.
 .code-render/
 
 # Python

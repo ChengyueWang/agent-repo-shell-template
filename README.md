@@ -1,108 +1,105 @@
-# Agent Repo Shell — Template
+# Agent Repo Shell
 
-Starter for the **two-layer agent repo** pattern:
-- **The shell** (this repo) — brain. Specs, tasks, skills, knowledge, session history.
-- **The targets** (`targets/`) — code. Each is a git worktree of an upstream repo, mounted by `setup.sh`. Targets push to their own remotes.
-
-Pair this repo with the [**Agent Repo Shell**](https://marketplace.visualstudio.com/items?itemName=ChengyueWang.agent-repo-shell) VSCode extension for a panel that browses the shell, renders specs / tasks / sessions, and visualizes target code (mermaid call graphs, function accordions, in-content find).
+A workspace for coordinating independent code repositories. The shell tracks
+shared tasks, skills, and knowledge; each mounted target owns its code and remote.
 
 ## Quick start
 
-```bash
-# 1. Click "Use this template" on GitHub, create your own repo
-# 2. Clone your repo locally
-git clone git@github.com:<you>/<your-repo>.git
-cd <your-repo>
+1. Use this GitHub template, clone your new repository, and open its directory.
+2. Edit `TARGETS` and, optionally, `REFERENCES` in `setup.sh` (both default to empty).
+3. Replace the project paragraph in `AGENTS.md` with your context and target responsibilities.
+4. Run `./setup.sh`, then `python3 tools/check_workspace.py`.
 
-# 3. Edit the TARGETS array at the top of setup.sh to point at your code
-$EDITOR setup.sh
-
-# 4. Bootstrap — clones each target as bare + worktrees per branch,
-#    adds each reference as a git submodule.
-./setup.sh
-
-# 5. Install the Agent Repo Shell VSCode extension
-#    (Cmd/Ctrl+Shift+X → search "Agent Repo Shell")
-
-# 6. Open the folder in VSCode
-#    Cmd/Ctrl+Shift+P → "Agent Repo Shell: Open View"
-```
-
-## Defaults out of the box
-
-Out of the box, `setup.sh` clones:
-
-- **target**: `agent-repo-shell` (the VSCode extension's own source) — so you can dogfood the extension while developing it. Replace with your own.
-- **reference**: `html-effectiveness` — the visual style this extension borrows from.
-
-Edit `setup.sh` to swap or extend.
-
-## Structure
-
-```
-.
-├── specs/                  source-of-truth design docs
-├── tasks/
-│   ├── todo/               work queue
-│   ├── doing/              in-progress
-│   └── done/               completed (move on completion — the extension provides a UI click)
-├── skills/                 reusable procedures the agent invokes
-├── knowledge/
-│   ├── rules/              ALWAYS-ON hard constraints (read every session)
-│   └── *.md                style guides, patterns, ADRs (read on demand)
-├── references/
-│   ├── repos/              pinned upstream repos as submodules
-│   └── notes/              papers, snippets, exports
-├── history/                per-session prompts.md + responses.md (gitignored)
-├── targets/                code being modified — git worktrees (gitignored)
-└── tools/hooks/            session capture hook for Claude Code
-```
-
-Open `.claude/CLAUDE.md` for the canonical agent-facing description.
-
-## Session capture
-
-`.claude/settings.json` registers `tools/hooks/save-assistant-response.py`
-as the Claude Code **Stop hook**. After each turn it reads the transcript
-JSONL and rebuilds:
-
-- `history/<session-id>/prompts.md` — all your prompts, dated
-- `history/<session-id>/responses.md` — extracted assistant responses
-
-The extension's **💬 Sessions** view renders both as chat bubbles.
-
-If you have an existing workspace that you want to convert into an agent
-shell, the lightest path is still to copy this template's
-`tools/hooks/save-assistant-response.py` and `.claude/settings.json` over
-manually — there's nothing magical about them.
-
-## The two-layer philosophy
-
-- **Brain is tracked, code is mounted.** The shell repo only commits
-  your agent's brain. Target repos are independent and push to their own
-  remotes — including ones you can't share (private, NDA, internal).
-- **Worktree-first.** Every active branch gets its own directory under
-  `targets/<name>/<branch>/` so the agent can work on multiple branches
-  in parallel without `checkout` thrash.
-- **Rules are load-bearing.** Anything under `knowledge/rules/` is
-  read every session. Everything else under `knowledge/` is on-demand.
-
-## Worktree commands
-
-Create a new exploration branch on an existing target:
+Requires Bash, Git 2.31+ and Python 3.9+ for the read-only checker. Authenticate to private
+remotes using your normal Git configuration. No editor extension is required.
 
 ```bash
-git -C targets/<name>/.bare worktree add ../<branch> -b explore/<branch>
+# TARGETS entries: name|url|comma-separated-branches (default: main)
+TARGETS=("myapp|git@github.com:YOUR-ORG/myapp.git|main,develop")
+# REFERENCES entries: path|url|optional-branch
+REFERENCES=("upstream|https://github.com/YOUR-ORG/upstream.git|main")
 ```
 
-Merge and clean up:
+All configured target branches must already exist on the remote. Setup fetches
+remote refs and creates missing worktrees; it never pulls, merges, or resets an
+existing worktree. A failure does not prevent other entries from being attempted,
+and any failed entry produces a nonzero exit status. Inspect the summary.
+Existing reference submodules are initialized without updating an already populated
+checkout. New references are registered with `git submodule add`; review and commit
+`.gitmodules` and submodule entries in the shell.
+
+## Layout and ownership
+
+```text
+AGENTS.md                    shared project instructions
+CLAUDE.md                    imports AGENTS.md; Claude-specific additions only
+skills/<name>/SKILL.md        canonical reusable procedures and supporting resources
+.agents/skills/<name>         relative symlink to ../../skills/<name>
+.claude/skills/<name>         relative symlink to ../../skills/<name>
+tasks/{todo,doing,done}/      execution queue
+knowledge/                   durable findings and cross-repository decisions
+references/papers/          source papers
+references/repos/           upstream submodules
+tools/                       shell maintenance utilities
+targets/<name>/.bare/        repository backing the target worktrees (ignored)
+targets/<name>/<branch>/     code worktrees, each with its own remote (ignored)
+scratch/                     local temporary outputs (ignored)
+```
+
+Target-specific specifications, implementation plans, tests, analysis programs,
+and reproducibility records belong in the owning target. Large run products use
+explicit storage paths. Live service state remains in its responsible service or
+durable storage. Do not treat source-control snapshots as current service state.
+
+There is no session-history directory or capture hook. Preserve useful findings
+in `knowledge/` and follow-up work in `tasks/`. Obsidian is optional.
+
+## Skills
+
+Maintain one real directory per skill, including a `SKILL.md` with `name` and
+`description` YAML frontmatter. Create both discovery links from the shell root:
 
 ```bash
-git -C targets/<name>/.bare merge <branch>
-git -C targets/<name>/.bare worktree remove ../<branch>
+ln -s ../../skills/my-skill .agents/skills/my-skill
+ln -s ../../skills/my-skill .claude/skills/my-skill
 ```
+
+Commit the source and symlinks together. Use a checkout/filesystem that preserves
+Git symlinks; the workspace checker reports flattened or broken discovery links.
+Skill-specific scripts or references live inside that skill; generated results do not.
+
+## Worktrees
+
+Create a new branch from the remote main branch:
+
+```bash
+git -C targets/myapp/.bare worktree add ../experiment -b explore/experiment origin/main
+```
+
+Merge from the receiving worktree, then remove the finished worktree:
+
+```bash
+git -C targets/myapp/main merge explore/experiment
+git -C targets/myapp/.bare worktree remove ../experiment
+```
+
+Branch paths such as `feature/example` are supported. Do not configure overlapping
+worktree paths such as both `feature` and `feature/example`.
+
+## Verification
+
+```bash
+python3 tools/check_workspace.py
+```
+
+Checks configured mounts and remotes, worktree identity, ignored local storage,
+skill frontmatter, and both discovery directories. It reports problems without
+fetching, creating, deleting, or repairing anything.
+
+The [Agent Repo Shell VSCode extension](https://marketplace.visualstudio.com/items?itemName=ChengyueWang.agent-repo-shell)
+is an optional workspace browser. Its Sessions view has no captured sessions in
+this template.
 
 ## License
 
-MIT — see [LICENSE](LICENSE). Sample content (specs / tasks / skills /
-rules) is illustrative; replace freely.
+MIT — see [LICENSE](LICENSE). Replace illustrative content to suit your project.

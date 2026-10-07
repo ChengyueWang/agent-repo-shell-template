@@ -1,33 +1,20 @@
-# Add a "Clear all hidden" button to the sidebar
+# Example — coordinate an interface change across targets
 
-> This is an **example task** showing the format. Replace with your own.
+Replace this example with a dated task such as `20261006-update-client-contract.md`.
 
 ## Context
 
-Right now users can right-click a file or folder → Hide. To unhide, they
-have to click the "show N hidden" toggle in the eyebrow, then right-click
-each hidden entry → Unhide. That's tedious if they hid 20 things.
+A producer target is changing an interface used by a consumer target. The shell
+tracks the coordination; the interface specification and tests belong in their
+respective targets.
 
-## What to do
+## Work
 
-Add a small "Clear all" link inside the hidden-toggle row in the eyebrow
-that, when clicked, empties the `hidden` set in localStorage and rebuilds
-the sidebar.
+- Identify the producing and consuming repositories and link their relevant contracts.
+- Implement the change and compatibility handling in the owning targets.
+- Record the target commits and validation results here when complete.
 
 ## Acceptance
 
-- When `hidden.size === 0`, the link doesn't appear (no point).
-- When `hidden.size > 0`, the link reads `clear N` next to the existing
-  `show N hidden` toggle.
-- Clicking confirms via a small native `confirm()` dialog (since this is
-  destructive and the user might have hidden things they want to keep
-  hidden long-term).
-- After confirm, all rows become visible and the eyebrow toggle hides.
-
-## Notes
-
-- Files: `extension.js`, search for `updateHiddenToggle` and add the link
-  there.
-- Don't conflict with the existing `show hidden` toggle — wrap both in a
-  flex container, separate with a dot delimiter.
-- Persist immediately via `saveHidden()`.
+The consumer handles the updated producer output, the target-specific checks pass,
+and this task links the evidence. Move the task to `done/` when complete.
